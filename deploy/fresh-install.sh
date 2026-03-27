@@ -226,23 +226,27 @@ create_user() {
 install_kashiza() {
     log "Installing Kashiza..."
     
+    # Sauvegarde le chemin AVANT suppression
+    local source_dir=""
+    if [ -d ".git" ] || [ -f "run.py" ]; then
+        source_dir=$(pwd)
+    fi
+    
     if [ -d "$INSTALL_DIR" ]; then
         warn "Removing existing installation..."
         rm -rf "$INSTALL_DIR"
     fi
     
-    # Check if running from git repo
-    if [ -d ".git" ] || [ -f "run.py" ]; then
+    # Va dans un répertoire sûr avant de copier/cloner
+    cd /tmp
+    
+    if [ -n "$source_dir" ]; then
         log "Copying from current directory..."
-        cp -r . "$INSTALL_DIR"
+        cp -r "$source_dir" "$INSTALL_DIR"  # Chemin absolu
     else
         log "Cloning from GitHub..."
-        git clone --depth 1 https://github.com/amrk0005x/kashiza.git "$INSTALL_DIR"
+        git clone ... "$INSTALL_DIR"
     fi
-    
-    chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
-    progress
-    success "Kashiza installed to $INSTALL_DIR"
 }
 
 # Setup Python virtual environment
