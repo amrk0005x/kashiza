@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kashiza - Advanced Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #16213e 100%); 
+            color: #e0e0e0; 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+        }
+        .glass { 
+            background: rgba(30, 30, 40, 0.7); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .gradient-text { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card { 
+            border-radius: 16px; 
+            padding: 24px; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 20px 60px rgba(102,126,234,0.2);
+            border-color: rgba(102,126,234,0.3);
+        }
+        .btn { 
+            padding: 12px 24px; 
+            border-radius: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+            border: none;
+            font-size: 0.95rem;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102,126,234,0.5);
+        }
+        .btn-secondary { 
+            background: rgba(255,255,255,0.08); 
+            color: #e0e0e0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        .input { 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            padding: 14px 18px; 
+            border-radius: 12px; 
+            color: #e0e0e0; 
+            width: 100%;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .input:focus { 
+            outline: none; 
+            border-color: #667eea;
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        .metric { text-align: center; padding: 20px; }
+        .metric-value { 
+            font-size: 2.5rem; 
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #a0a0a0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .metric-label { font-size: 0.875rem; color: #888; margin-top: 8px; }
+        .status-indicator { 
+            width: 10px; 
+            height: 10px; 
+            border-radius: 50%; 
+            display: inline-block;
+            box-shadow: 0 0 10px currentColor;
+        }
+        .status-healthy { background: #22c55e; color: #22c55e; }
+        .status-warning { background: #f59e0b; color: #f59e0b; }
+        .status-error { background: #ef4444; color: #ef4444; }
+        .log-entry { 
+            padding: 12px; 
+            border-left: 3px solid #667eea; 
+            margin: 8px 0; 
+            background: rgba(255,255,255,0.03);
+            border-radius: 0 8px 8px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+        .sidebar { 
+            width: 280px; 
+            height: 100vh; 
+            position: fixed; 
+            left: 0; 
+            top: 0; 
+            background: rgba(15,15,20,0.95); 
+            padding: 24px;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .main-content { margin-left: 280px; padding: 32px; }
+        .nav-item { 
+            padding: 14px 18px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            margin: 6px 0; 
+            display: flex; 
+            align-items: center; 
+            gap: 14px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .nav-item:hover, .nav-item.active { 
+            background: linear-gradient(135deg, rgba(102,126,234,0.2) 0%, rgba(118,75,162,0.2) 100%);
+            color: #667eea;
+        }
+        .nav-item.active {
+            box-shadow: 0 4px 15px rgba(102,126,234,0.2);
+        }
+        .progress-bar { 
+            height: 10px; 
+            background: rgba(255,255,255,0.08); 
+            border-radius: 5px; 
+            overflow: hidden;
+        }
+        .progress-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+            transition: width 0.5s ease;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+            background: rgba(102,126,234,0.1);
+            border-radius: 20px;
+            width: fit-content;
+        }
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success { background: rgba(34,197,94,0.2); color: #22c55e; }
+        .badge-warning { background: rgba(245,158,11,0.2); color: #f59e0b; }
+        .badge-error { background: rgba(239,68,68,0.2); color: #ef4444; }
+        .chat-message {
+            padding: 14px 18px;
+            border-radius: 18px;
+            max-width: 80%;
+            margin: 8px 0;
+        }
+        .chat-message-own {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message-other {
+            background: rgba(255,255,255,0.08);
+            border-bottom-left-radius: 4px;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+        .fade-in { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+        const API_URL = window.location.origin;
+        const WS_URL = `ws://${window.location.host}/ws`;
+
+        // Token storage
+        const getToken = () => localStorage.getItem('kashiza_token');
+        const setToken = (token) => localStorage.setItem('kashiza_token', token);
+
+        // WebSocket Hook
+        const useWebSocket = (clientId) => {
+            const [ws, setWs] = useState(null);
+            const [connected, setConnected] = useState(false);
+            const [messages, setMessages] = useState([]);
+
+            useEffect(() => {
+                const websocket = new WebSocket(`${WS_URL}/${clientId}`);
+                
+                websocket.onopen = () => {
+                    setConnected(true);
+                    console.log('WebSocket connected');
+                };
+                
+                websocket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    setMessages(prev => [...prev.slice(-50), data]);
+                };
+                
+                websocket.onclose = () => {
+                    setConnected(false);
+                    console.log('WebSocket disconnected');
+                };
+                
+                websocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+                
+                setWs(websocket);
+                
+                return () => websocket.close();
+            }, [clientId]);
+
+            const send = useCallback((data) => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify(data));
+                }
+            }, [ws]);
+
+            const joinRoom = useCallback((room) => {
+                send({ type: 'join_room', room });
+            }, [send]);
+
+            const sendMessage = useCallback((room, message, userName) => {
+                send({ type: 'chat_message', room, message, user_name: userName });
+            }, [send]);
+
+            return { connected, messages, send, joinRoom, sendMessage };
+        };
+
+        // Login Component
+        const Login = ({ onLogin }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+
+            const handleLogin = async () => {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.token) {
+                    setToken(data.token);
+                    onLogin();
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="card glass max-w-md w-full p-8">
+                        <h1 className="text-3xl font-bold mb-2 gradient-text text-center">Kashiza</h1>
+                        <p className="text-gray-400 text-center mb-8">Advanced Multi-Agent Orchestration</p>
+                        
+                        <input
+                            className="input mb-4"
+                            placeholder="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
+                        <input
+                            className="input mb-6"
+                            type="password"
+                            placeholder="Password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <button className="btn btn-primary w-full" onClick={handleLogin}>
+                            Sign In
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Sidebar Component
+        const Sidebar = ({ activeTab, setActiveTab, connected }) => {
+            const items = [
+                { id: 'overview', icon: 'fa-home', label: 'Overview' },
+                { id: 'agents', icon: 'fa-robot', label: 'Agents' },
+                { id: 'tasks', icon: 'fa-tasks', label: 'Tasks' },
+                { id: 'collaborate', icon: 'fa-comments', label: 'Collaborate' },
+                { id: 'git', icon: 'fa-code-branch', label: 'Git' },
+                { id: 'team', icon: 'fa-users', label: 'Team' },
+                { id: 'templates', icon: 'fa-file-code', label: 'Templates' },
+                { id: 'market', icon: 'fa-store', label: 'Market' },
+                { id: 'costs', icon: 'fa-dollar-sign', label: 'Costs' },
+                { id: 'security', icon: 'fa-shield-alt', label: 'Security' },
+                { id: 'plugins', icon: 'fa-puzzle-piece', label: 'Plugins' },
+                { id: 'monitoring', icon: 'fa-chart-line', label: 'Monitoring' },
+            ];
+
+            return (
+                <div className="sidebar">
+                    <h1 className="text-2xl font-bold mb-2 gradient-text">Kashiza</h1>
+                    <div className="flex items-center gap-2 mb-8">
+                        <span className={`status-indicator ${connected ? 'status-healthy' : 'status-error'}`}></span>
+                        <span className="text-sm text-gray-400">{connected ? 'Connected' : 'Disconnected'}</span>
+                    </div>
+                    
+                    <nav>
+                        {items.map(item => (
+                            <div
+                                key={item.id}
+                                className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                                onClick={() => setActiveTab(item.id)}
+                            >
+                                <i className={`fas ${item.icon}`}></i>
+                                {item.label}
+                            </div>
+                        ))}
+                    </nav>
+                </div>
+            );
+        };
+
+        // Metric Card
+        const MetricCard = ({ title, value, subtitle, icon, trend, color }) => (
+            <div className="card glass">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="text-gray-400 text-sm font-medium">{title}</p>
+                        <p className="text-3xl font-bold mt-2" style={{ color: color || '#fff' }}>{value}</p>
+                        {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+                    </div>
+                    <div className="text-2xl" style={{ color: color || '#667eea' }}>
+                        <i className={`fas ${icon}`}></i>
+                    </div>
+                </div>
+                {trend && (
+                    <div className={`mt-3 text-sm font-medium ${trend > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <i className={`fas fa-arrow-${trend > 0 ? 'up' : 'down'} mr-1`}></i>
+                        {Math.abs(trend)}%
+                    </div>
+                )}
+            </div>
+        );
+
+        // Overview Tab
+        const OverviewTab = ({ wsMessages }) => {
+            const [stats, setStats] = useState({ agents: 0, tasks: 0, projects: 0, cost: 0 });
+            const [activities, setActivities] = useState([]);
+
+            useEffect(() => {
+                fetch(`${API_URL}/api/team/overview`, { headers: { 'Authorization': `Bearer ${getToken()}` }})
+                    .then(r => r.json())
+                    .then(data => setStats(s => ({...s, projects: data.projects || 0, tasks: data.tasks?.total || 0})));
+                
+                fetch(`${API_URL}/api/agents`, { headers: { 'Authorization': `Bearer ${getToken()}` }})
+                    .then(r => r.json())
+                    .then(data => setStats(s => ({...s, agents: data.agents?.length || 0})));
+                
+                fetch(`${API_URL}/api/costs`, { headers: { 'Authorization': `Bearer ${getToken()}` }})
+                    .then(r => r.json())
+                    .then(data => setStats(s => ({...s, cost: data.daily?.spent?.toFixed(2) || 0})));
+            }, []);
+
+            useEffect(() => {
+                wsMessages.forEach(msg => {
+                    if (msg.type === 'task_completed' || msg.type === 'agent_result') {
+                        setActivities(prev => [msg, ...prev.slice(0, 9)]);
+                    }
+                });
+            }, [wsMessages]);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">Dashboard Overview</h2>
+                    <div className="grid grid-cols-4 gap-6 mb-8">
+                        <MetricCard title="Active Agents" value={stats.agents} icon="fa-robot" color="#667eea" />
+                        <MetricCard title="Total Tasks" value={stats.tasks} icon="fa-tasks" color="#764ba2" />
+                        <MetricCard title="Projects" value={stats.projects} icon="fa-folder" color="#f093fb" />
+                        <MetricCard title="Daily Cost" value={`$${stats.cost}`} icon="fa-dollar-sign" color="#4ade80" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                        <QuickExecute />
+                        <ActivityFeed activities={activities} />
+                    </div>
+                </div>
+            );
+        };
+
+        // Quick Execute
+        const QuickExecute = () => {
+            const [prompt, setPrompt] = useState('');
+            const [executing, setExecuting] = useState(false);
+            const [result, setResult] = useState(null);
+
+            const execute = async () => {
+                if (!prompt.trim()) return;
+                setExecuting(true);
+                
+                try {
+                    const res = await fetch(`${API_URL}/api/orchestrate`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${getToken()}`
+                        },
+                        body: JSON.stringify({ prompt, mode: 'auto' })
+                    });
+                    const data = await res.json();
+                    setResult(data);
+                } catch (e) {
+                    setResult({ error: e.message });
+                }
+                
+                setExecuting(false);
+            };
+
+            return (
+                <div className="card glass">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <i className="fas fa-bolt text-yellow-400"></i>
+                        Quick Task
+                    </h3>
+                    <textarea
+                        className="input mb-4"
+                        rows="4"
+                        placeholder="Describe your task..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                    />
+                    <button
+                        className="btn btn-primary w-full"
+                        onClick={execute}
+                        disabled={executing}
+                    >
+                        {executing ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-play mr-2"></i>}
+                        {executing ? 'Executing...' : 'Execute'}
+                    </button>
+                    
+                    {result && (
+                        <div className="mt-6 p-4 bg-black/30 rounded-lg">
+                            <h4 className="font-semibold mb-2">Results:</h4>
+                            {result.error ? (
+                                <p className="text-red-400">{result.error}</p>
+                            ) : (
+                                <div>
+                                    <div className="flex gap-4 text-sm text-gray-400 mb-3">
+                                        <span><i className="fas fa-cog mr-1"></i> {result.mode}</span>
+                                        <span><i className="fas fa-dollar-sign mr-1"></i> {result.total_cost?.toFixed(4)}</span>
+                                        <span><i className="fas fa-clock mr-1"></i> {result.total_time?.toFixed(2)}s</span>
+                                    </div>
+                                    {result.results?.map((r, i) => (
+                                        <div key={i} className="log-entry fade-in">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <strong className="text-purple-400">{r.agent_id}</strong>
+                                                <span className="text-xs text-gray-500">{r.tokens_used} tokens</span>
+                                            </div>
+                                            <pre className="text-sm text-gray-300 whitespace-pre-wrap">{r.output}</pre>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Activity Feed
+        const ActivityFeed = ({ activities }) => (
+            <div className="card glass">
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <i className="fas fa-stream text-blue-400"></i>
+                    Real-time Activity
+                </h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {activities.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">No recent activity</p>
+                    ) : (
+                        activities.map((activity, i) => (
+                            <div key={i} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg fade-in">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xs">
+                                    <i className="fas fa-robot"></i>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium">
+                                        {activity.type === 'task_completed' ? 'Task completed' : 'Agent result'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(activity.timestamp).toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+        );
+
+        // Collaborate Tab (Real-time chat)
+        const CollaborateTab = ({ messages, sendMessage, joinRoom, connected }) => {
+            const [room, setRoom] = useState('general');
+            const [message, setMessage] = useState('');
+            const [joined, setJoined] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            useEffect(() => {
+                if (connected && !joined) {
+                    joinRoom(room);
+                    setJoined(true);
+                }
+            }, [connected, joined, joinRoom, room]);
+
+            const handleSend = () => {
+                if (message.trim()) {
+                    sendMessage(room, message, 'User');
+                    setMessage('');
+                }
+            };
+
+            const chatMessages = messages.filter(m => 
+                m.type === 'chat_message' || 
+                m.type === 'user_joined' ||
+                m.type === 'task_completed'
+            );
+
+            return (
+                <div className="h-[calc(100vh-100px)]">
+                    <h2 className="text-2xl font-bold mb-4">Real-time Collaboration</h2>
+                    <div className="card glass h-full flex flex-col">
+                        <div className="flex gap-2 mb-4">
+                            <input 
+                                className="input flex-1" 
+                                placeholder="Room name"
+                                value={room}
+                                onChange={(e) => setRoom(e.target.value)}
+                            />
+                            <button className="btn btn-secondary" onClick={() => joinRoom(room)}>
+                                Join
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-black/20 rounded-lg mb-4">
+                            {chatMessages.map((msg, i) => (
+                                <div key={i} className="fade-in">
+                                    {msg.type === 'chat_message' && (
+                                        <div className={`chat-message ${msg.client_id === 'user' ? 'chat-message-own' : 'chat-message-other'}`}>
+                                            <p className="text-xs text-gray-400 mb-1">{msg.user_name}</p>
+                                            <p>{msg.message}</p>
+                                        </div>
+                                    )}
+                                    {msg.type === 'user_joined' && (
+                                        <div className="text-center text-sm text-gray-500 py-2">
+                                            {msg.client_id} joined the room
+                                        </div>
+                                    )}
+                                    {msg.type === 'task_completed' && (
+                                        <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
+                                            <i className="fas fa-check-circle text-green-400"></i>
+                                            <span className="text-sm">Task completed - Cost: ${msg.total_cost?.toFixed(4)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        
+                        <div className="flex gap-2">
+                            <input
+                                className="input flex-1"
+                                placeholder="Type a message..."
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                            />
+                            <button className="btn btn-primary" onClick={handleSend}>
+                                <i className="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Security Tab
+        const SecurityTab = () => {
+            const [keys, setKeys] = useState([]);
+            const [newKey, setNewKey] = useState({ service: '', key: '' });
+
+            useEffect(() => {
+                fetch(`${API_URL}/security/keys`, { headers: { 'Authorization': `Bearer ${getToken()}` }})
+                    .then(r => r.json())
+                    .then(data => setKeys(data.keys || []));
+            }, []);
+
+            const storeKey = async () => {
+                await fetch(`${API_URL}/security/keys/store`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify(newKey)
+                });
+                setNewKey({ service: '', key: '' });
+            };
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">Security Management</h2>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-4">API Keys</h3>
+                            <div className="space-y-3 mb-6">
+                                {keys.map((k, i) => (
+                                    <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                                        <div>
+                                            <p className="font-medium">{k.service}</p>
+                                            <p className="text-xs text-gray-500">Hash: {k.key_hash}</p>
+                                        </div>
+                                        <span className={`badge badge-${k.status === 'active' ? 'success' : 'warning'}`}>
+                                            {k.status}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="border-t border-white/10 pt-4">
+                                <h4 className="text-sm font-medium mb-3">Add New Key</h4>
+                                <input
+                                    className="input mb-2"
+                                    placeholder="Service name"
+                                    value={newKey.service}
+                                    onChange={(e) => setNewKey({...newKey, service: e.target.value})}
+                                />
+                                <input
+                                    className="input mb-3"
+                                    type="password"
+                                    placeholder="API Key"
+                                    value={newKey.key}
+                                    onChange={(e) => setNewKey({...newKey, key: e.target.value})}
+                                />
+                                <button className="btn btn-primary w-full" onClick={storeKey}>
+                                    Store Securely
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-4">Security Status</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
+                                    <span>API Keys Encrypted</span>
+                                    <i className="fas fa-check-circle text-green-400"></i>
+                                </div>
+                                <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
+                                    <span>Request Validation</span>
+                                    <i className="fas fa-check-circle text-green-400"></i>
+                                </div>
+                                <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg">
+                                    <span>Rate Limiting</span>
+                                    <i className="fas fa-check-circle text-green-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Plugins Tab
+        const PluginsTab = () => {
+            const [plugins, setPlugins] = useState([]);
+
+            useEffect(() => {
+                fetch(`${API_URL}/api/plugins`, { headers: { 'Authorization': `Bearer ${getToken()}` }})
+                    .then(r => r.json())
+                    .then(data => setPlugins(data.plugins || []));
+            }, []);
+
+            const togglePlugin = async (name, enable) => {
+                await fetch(`${API_URL}/api/plugins/${name}/${enable ? 'enable' : 'disable'}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                setPlugins(plugins.map(p => p.name === name ? {...p, enabled: enable} : p));
+            };
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">Plugin Manager</h2>
+                    <div className="grid grid-cols-2 gap-4">
+                        {plugins.map((plugin) => (
+                            <div key={plugin.name} className="card glass">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="text-lg font-semibold">{plugin.name}</h3>
+                                        <p className="text-sm text-gray-400">v{plugin.version} by {plugin.author}</p>
+                                    </div>
+                                    <button
+                                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                            plugin.enabled 
+                                                ? 'bg-green-500/20 text-green-400' 
+                                                : 'bg-gray-500/20 text-gray-400'
+                                        }`}
+                                        onClick={() => togglePlugin(plugin.name, !plugin.enabled)}
+                                    >
+                                        {plugin.enabled ? 'Enabled' : 'Disabled'}
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-300 mb-3">{plugin.description}</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {plugin.hooks?.map(hook => (
+                                        <span key={hook} className="px-2 py-1 bg-purple-500/20 rounded text-xs text-purple-300">
+                                            {hook}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+            const [loggedIn, setLoggedIn] = useState(!!getToken());
+            const clientId = useRef(`client_${Date.now()}`);
+            
+            const { connected, messages, send, joinRoom, sendMessage } = useWebSocket(clientId.current);
+
+            if (!loggedIn) {
+                return <Login onLogin={() => setLoggedIn(true)} />;
+            }
+
+            const renderTab = () => {
+                switch(activeTab) {
+                    case 'overview': return <OverviewTab wsMessages={messages} />;
+                    case 'collaborate': return (
+                        <CollaborateTab 
+                            messages={messages} 
+                            sendMessage={sendMessage}
+                            joinRoom={joinRoom}
+                            connected={connected}
+                        />
+                    );
+                    case 'security': return <SecurityTab />;
+                    case 'plugins': return <PluginsTab />;
+                    default: return <OverviewTab wsMessages={messages} />;
+                }
+            };
+
+            return (
+                <div className="flex">
+                    <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} connected={connected} />
+                    <div className="main-content">
+                        {renderTab()}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

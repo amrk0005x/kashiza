@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  kashiza:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: kashiza
+    restart: unless-stopped
+    ports:
+      - "${KASHIZA_PORT:-8080}:8080"
+    environment:
+      - KASHIZA_ENV=production
+      - KASHIZA_HOST=0.0.0.0
+      - KASHIZA_PORT=8080
+      - KASHIZA_MASTER_KEY=${KASHIZA_MASTER_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      # AI Providers
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - KIMI_API_KEY=${KIMI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      # Infrastructure
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=sqlite:///data/kashiza.db
+    volumes:
+      - kashiza-data:/app/data
+      - kashiza-logs:/app/logs
+      - kashiza-plugins:/app/plugins
+      - kashiza-config:/app/config
+    networks:
+      - kashiza-network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/monitoring/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: kashiza-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - kashiza-network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  nginx:
+    image: nginx:alpine
+    container_name: kashiza-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - certbot-data:/etc/letsencrypt
+    networks:
+      - kashiza-network
+    depends_on:
+      - kashiza
+
+  certbot:
+    image: certbot/certbot
+    container_name: kashiza-certbot
+    volumes:
+      - certbot-data:/etc/letsencrypt
+      - ./ssl:/etc/nginx/ssl
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - kashiza-network
+
+volumes:
+  kashiza-data:
+  kashiza-logs:
+  kashiza-plugins:
+  kashiza-config:
+  redis-data:
+  certbot-data:
+
+networks:
+  kashiza-network:
+    driver: bridge

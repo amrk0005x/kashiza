@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kashiza Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .glass { background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .card { border-radius: 12px; padding: 20px; transition: all 0.3s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .btn { padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #e0e0e0; }
+        .input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; color: #e0e0e0; width: 100%; }
+        .input:focus { outline: none; border-color: #667eea; }
+        .metric { text-align: center; padding: 15px; }
+        .metric-value { font-size: 2rem; font-weight: 700; }
+        .metric-label { font-size: 0.875rem; color: #888; }
+        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-healthy { background: #22c55e; }
+        .status-warning { background: #f59e0b; }
+        .status-error { background: #ef4444; }
+        .log-entry { padding: 8px; border-left: 3px solid #667eea; margin: 5px 0; background: rgba(255,255,255,0.02); }
+        .sidebar { width: 250px; height: 100vh; position: fixed; left: 0; top: 0; background: rgba(20,20,20,0.95); padding: 20px; }
+        .main-content { margin-left: 250px; padding: 30px; }
+        .nav-item { padding: 12px; border-radius: 8px; cursor: pointer; margin: 5px 0; display: flex; align-items: center; gap: 10px; }
+        .nav-item:hover, .nav-item.active { background: rgba(102,126,234,0.2); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); transition: width 0.3s; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        const API_URL = window.location.origin;
+
+        const Sidebar = ({ activeTab, setActiveTab }) => {
+            const items = [
+                { id: 'overview', icon: 'fa-home', label: 'Overview' },
+                { id: 'agents', icon: 'fa-robot', label: 'Agents' },
+                { id: 'tasks', icon: 'fa-tasks', label: 'Tasks' },
+                { id: 'team', icon: 'fa-users', label: 'Team' },
+                { id: 'templates', icon: 'fa-file-code', label: 'Templates' },
+                { id: 'market', icon: 'fa-store', label: 'Market' },
+                { id: 'costs', icon: 'fa-dollar-sign', label: 'Costs' },
+                { id: 'monitoring', icon: 'fa-chart-line', label: 'Monitoring' },
+                { id: 'settings', icon: 'fa-cog', label: 'Settings' }
+            ];
+
+            return (
+                <div className="sidebar">
+                    <h1 className="text-2xl font-bold mb-8 gradient-text">Kashiza</h1>
+                    <nav>
+                        {items.map(item => (
+                            <div
+                                key={item.id}
+                                className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
+                                onClick={() => setActiveTab(item.id)}
+                            >
+                                <i className={`fas ${item.icon}`}></i>
+                                {item.label}
+                            </div>
+                        ))}
+                    </nav>
+                </div>
+            );
+        };
+
+        const MetricCard = ({ title, value, subtitle, icon, trend }) => (
+            <div className="card glass">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="text-gray-400 text-sm">{title}</p>
+                        <p className="text-3xl font-bold mt-2">{value}</p>
+                        {subtitle && <p className="text-gray-500 text-sm mt-1">{subtitle}</p>}
+                    </div>
+                    <div className="text-2xl text-purple-400">
+                        <i className={`fas ${icon}`}></i>
+                    </div>
+                </div>
+                {trend && (
+                    <div className={`mt-3 text-sm ${trend > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <i className={`fas fa-arrow-${trend > 0 ? 'up' : 'down'}`}></i>
+                        {Math.abs(trend)}%
+                    </div>
+                )}
+            </div>
+        );
+
+        const OverviewTab = () => {
+            const [stats, setStats] = useState({
+                agents: 0,
+                tasks: 0,
+                projects: 0,
+                cost: 0
+            });
+
+            useEffect(() => {
+                fetch(`${API_URL}/api/team/overview`)
+                    .then(r => r.json())
+                    .then(data => setStats(s => ({...s, projects: data.projects || 0, tasks: data.tasks?.total || 0})));
+                
+                fetch(`${API_URL}/api/agents`)
+                    .then(r => r.json())
+                    .then(data => setStats(s => ({...s, agents: data.agents?.length || 0})));
+                
+                fetch(`${API_URL}/api/costs`)
+                    .then(r => r.json())
+                    .then(data => setStats(s => ({...s, cost: data.daily?.spent?.toFixed(2) || 0})));
+            }, []);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">Dashboard Overview</h2>
+                    <div className="grid grid-cols-4 gap-6 mb-8">
+                        <MetricCard title="Active Agents" value={stats.agents} icon="fa-robot" />
+                        <MetricCard title="Total Tasks" value={stats.tasks} icon="fa-tasks" />
+                        <MetricCard title="Projects" value={stats.projects} icon="fa-folder" />
+                        <MetricCard title="Daily Cost" value={`$${stats.cost}`} icon="fa-dollar-sign" />
+                    </div>
+                    <QuickExecute />
+                </div>
+            );
+        };
+
+        const QuickExecute = () => {
+            const [prompt, setPrompt] = useState('');
+            const [executing, setExecuting] = useState(false);
+            const [result, setResult] = useState(null);
+
+            const execute = async () => {
+                if (!prompt.trim()) return;
+                setExecuting(true);
+                
+                try {
+                    const res = await fetch(`${API_URL}/api/orchestrate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt, mode: 'auto' })
+                    });
+                    const data = await res.json();
+                    setResult(data);
+                } catch (e) {
+                    setResult({ error: e.message });
+                }
+                
+                setExecuting(false);
+            };
+
+            return (
+                <div className="card glass">
+                    <h3 className="text-xl font-semibold mb-4">Quick Task</h3>
+                    <textarea
+                        className="input mb-4"
+                        rows="4"
+                        placeholder="Enter your task description..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                    />
+                    <button
+                        className="btn btn-primary"
+                        onClick={execute}
+                        disabled={executing}
+                    >
+                        {executing ? <i className="fas fa-spinner fa-spin"></i> : 'Execute'}
+                    </button>
+                    
+                    {result && (
+                        <div className="mt-6 p-4 bg-black/30 rounded-lg">
+                            <h4 className="font-semibold mb-2">Results:</h4>
+                            {result.error ? (
+                                <p className="text-red-400">{result.error}</p>
+                            ) : (
+                                <div>
+                                    <p className="text-sm text-gray-400 mb-2">
+                                        Mode: {result.mode} | Cost: ${result.total_cost?.toFixed(4)} | Time: {result.total_time?.toFixed(2)}s
+                                    </p>
+                                    {result.results?.map((r, i) => (
+                                        <div key={i} className="log-entry">
+                                            <strong>{r.agent_id}</strong>
+                                            <pre className="text-sm text-gray-300 mt-2 whitespace-pre-wrap">{r.output}</pre>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const AgentsTab = () => {
+            const [agents, setAgents] = useState([]);
+
+            useEffect(() => {
+                fetch(`${API_URL}/api/agents`)
+                    .then(r => r.json())
+                    .then(data => setAgents(data.agents || []));
+            }, []);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">Agent Registry</h2>
+                    <div className="grid grid-cols-2 gap-6">
+                        {agents.map(agent => (
+                            <div key={agent.id} className="card glass">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-xl font-semibold">{agent.name}</h3>
+                                        <p className="text-gray-400 text-sm">{agent.specialty}</p>
+                                    </div>
+                                    <span className="px-3 py-1 bg-purple-500/20 rounded-full text-sm">
+                                        {agent.model}
+                                    </span>
+                                </div>
+                                <p className="text-gray-300 mb-4">{agent.description}</p>
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    {agent.skills?.map(skill => (
+                                        <span key={skill} className="px-2 py-1 bg-white/5 rounded text-sm">
+                                            {skill}
+                                        </span>
+                                    ))}
+                                </div>
+                                <p className="text-sm text-gray-400">Cost: ${agent.cost_per_1k}/1k tokens</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const CostsTab = () => {
+            const [budget, setBudget] = useState({ daily: {}, monthly: {} });
+
+            useEffect(() => {
+                fetch(`${API_URL}/api/costs`)
+                    .then(r => r.json())
+                    .then(data => setBudget(data));
+            }, []);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">Cost Tracking</h2>
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-4">Daily Budget</h3>
+                            <div className="metric">
+                                <p className="metric-value">${budget.daily.spent?.toFixed(2) || 0}</p>
+                                <p className="metric-label">of ${budget.daily.budget || 0}</p>
+                            </div>
+                            <div className="progress-bar mt-4">
+                                <div 
+                                    className="progress-fill" 
+                                    style={{width: `${Math.min(budget.daily.percent_used || 0, 100)}%`}}
+                                ></div>
+                            </div>
+                        </div>
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-4">Monthly Budget</h3>
+                            <div className="metric">
+                                <p className="metric-value">${budget.monthly.spent?.toFixed(2) || 0}</p>
+                                <p className="metric-label">of ${budget.monthly.budget || 0}</p>
+                            </div>
+                            <div className="progress-bar mt-4">
+                                <div 
+                                    className="progress-fill" 
+                                    style={{width: `${Math.min(budget.monthly.percent_used || 0, 100)}%`}}
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const MonitoringTab = () => {
+            const [status, setStatus] = useState(null);
+
+            useEffect(() => {
+                const fetchStatus = () => {
+                    fetch(`${API_URL}/api/monitoring/status`)
+                        .then(r => r.json())
+                        .then(data => setStatus(data));
+                };
+                fetchStatus();
+                const interval = setInterval(fetchStatus, 5000);
+                return () => clearInterval(interval);
+            }, []);
+
+            if (!status) return <div>Loading...</div>;
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">System Monitoring</h2>
+                    <div className="grid grid-cols-3 gap-6 mb-6">
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-2">Quality Score</h3>
+                            <div className="flex items-center gap-4">
+                                <span className="text-4xl font-bold">
+                                    {status.quality?.current_score?.toFixed(1) || 'N/A'}
+                                </span>
+                                <span className="text-gray-400">/ 10</span>
+                            </div>
+                            <p className="text-sm text-gray-400 mt-2">
+                                Target: {status.quality?.target || 7}
+                            </p>
+                        </div>
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-2">Tool Cache</h3>
+                            <p className="text-2xl font-bold">
+                                {status.cache_stats?.tool_cache?.hit_rate?.toFixed(1) || 0}% hit rate
+                            </p>
+                            <p className="text-sm text-gray-400">
+                                {status.cache_stats?.tool_cache?.size || 0} items cached
+                            </p>
+                        </div>
+                        <div className="card glass">
+                            <h3 className="text-lg font-semibold mb-2">System Status</h3>
+                            <p className="flex items-center gap-2">
+                                <span className="status-indicator status-healthy"></span>
+                                Healthy
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('overview');
+
+            const renderTab = () => {
+                switch(activeTab) {
+                    case 'overview': return <OverviewTab />;
+                    case 'agents': return <AgentsTab />;
+                    case 'costs': return <CostsTab />;
+                    case 'monitoring': return <MonitoringTab />;
+                    default: return <OverviewTab />;
+                }
+            };
+
+            return (
+                <div className="flex">
+                    <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+                    <div className="main-content">
+                        {renderTab()}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

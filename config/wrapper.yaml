@@ -1,0 +1,46 @@
+# Kashiza Configuration
+
+# Budget Settings
+daily_budget: 10.0
+monthly_budget: 100.0
+alert_thresholds: [0.5, 0.8, 1.0]
+auto_switch_cheaper: true
+
+# Quality Settings
+target_quality: 7.0
+auto_optimize: true
+auto_correct: true
+
+# Performance Settings
+max_concurrent_tasks: 5
+cache_ttl: 3600
+context_compression_threshold: 3000
+
+# Retry Settings
+max_retries: 3
+base_delay: 1.0
+exponential_base: 2.0
+circuit_breaker_threshold: 5
+
+# Monitoring
+monitoring_interval: 60
+metrics_retention_days: 7
+
+# API Settings
+api_host: "0.0.0.0"
+api_port: 8080
+cors_origins: ["*"]
+
+# Mobile Settings
+push_notifications: true
+offline_sync: true
+sync_interval: 300
+
+# Voice Settings
+wake_word: "hey kashiza"
+speech_rate: 1.0
+language: "en-US"
+
+# Team Settings
+default_role: "developer"
+enable_realtime: true
