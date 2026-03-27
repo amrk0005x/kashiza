@@ -224,28 +224,17 @@ create_user() {
 
 # Clone/install Kashiza
 install_kashiza() {
-    log "Installing Kashiza..."
+   current_dir=$(pwd)  # /opt/kashiza
     
-    # Sauvegarde le chemin AVANT suppression
-    local source_dir=""
-    if [ -d ".git" ] || [ -f "run.py" ]; then
-        source_dir=$(pwd)
-    fi
-    
-    if [ -d "$INSTALL_DIR" ]; then
-        warn "Removing existing installation..."
+    if [ "$current_dir" = "$INSTALL_DIR" ]; then
+        # 1. Copie dans /tmp AVANT suppression
+        cp -r "$current_dir" /tmp/kashiza-source
+        
+        # 2. Supprime /opt/kashiza
         rm -rf "$INSTALL_DIR"
-    fi
-    
-    # Va dans un répertoire sûr avant de copier/cloner
-    cd /tmp
-    
-    if [ -n "$source_dir" ]; then
-        log "Copying from current directory..."
-        cp -r "$source_dir" "$INSTALL_DIR"  # Chemin absolu
-    else
-        log "Cloning from GitHub..."
-        git clone ... "$INSTALL_DIR"
+        
+        # 3. Restaure depuis /tmp
+        cp -r /tmp/kashiza-source/* "$INSTALL_DIR/"
     fi
 }
 
