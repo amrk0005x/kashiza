@@ -113,8 +113,8 @@ install_base_deps() {
                 libxmlsec1-dev libffi-dev liblzma-dev \
                 redis-server nginx certbot python3-certbot-nginx \
                 ufw fail2ban logrotate htop tree jq unzip
-            systemctl enable redis nginx
-            systemctl start redis nginx
+            systemctl enable redis-server nginx
+            systemctl start redis-server nginx
             ;;
         centos|rhel|rocky|almalinux)
             yum install -y epel-release
@@ -329,10 +329,18 @@ EOF
 setup_systemd() {
     log "Setting up systemd service..."
     
+    # Detect correct redis service name
+    if systemctl list-unit-files | grep -q "redis-server.service"; then
+        REDIS_SERVICE="redis-server.service"
+    else
+        REDIS_SERVICE="redis.service"
+    fi
+    
     cat > /etc/systemd/system/kashiza.service << EOF
 [Unit]
 Description=Kashiza Multi-Agent Orchestration System
-After=network.target redis.service
+After=network.target $REDIS_SERVICE
+
 
 [Service]
 Type=simple
